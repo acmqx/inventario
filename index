@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Costo de mantener inventario</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:wght@600;700&display=swap">
+<style>
+/* Layout: una columna de captura a la izquierda, resultado vivo a la derecha; en celular se apilan. */
+:root {
+  --bg: #F4F6FA;
+  --surface: #FFFFFF;
+  --fg: #1B2133;
+  --muted: #4C4C4F;
+  --line: #D6DEEA;
+  --accent: #28367B;
+  --on-accent: #FFFFFF;
+  --soft: #A6BBCD;
+  --soft-bg: #E6EDF5;
+  --warn: #9A4A00;
+  --warn-bg: #FCEBD9;
+  --ok: #17603A;
+  --ok-bg: #DCF1E4;
+  --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11162A;
+    --surface: #19203A;
+    --fg: #E8ECF5;
+    --muted: #AEB8CC;
+    --line: #2C3658;
+    --accent: #A6BBCD;
+    --on-accent: #11162A;
+    --soft: #5A6FA8;
+    --soft-bg: #222B4B;
+    --warn: #F2B77A;
+    --warn-bg: #3A2A18;
+    --ok: #8AD6A9;
+    --ok-bg: #1B3326;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11162A;
+  --surface: #19203A;
+  --fg: #E8ECF5;
+  --muted: #AEB8CC;
+  --line: #2C3658;
+  --accent: #A6BBCD;
+  --on-accent: #11162A;
+  --soft: #5A6FA8;
+  --soft-bg: #222B4B;
+  --warn: #F2B77A;
+  --warn-bg: #3A2A18;
+  --ok: #8AD6A9;
+  --ok-bg: #1B3326;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 40px;
+}
+.wrap { max-width: 1040px; margin: 0 auto; display: grid; gap: 24px; }
+header { display: grid; gap: 8px; }
+.eyebrow { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { font-family: var(--font-display); font-size: clamp(28px, 5vw, 40px); line-height: 1.12; margin: 0; text-wrap: balance; color: var(--accent); }
+.lead { margin: 0; max-width: 62ch; color: var(--muted); font-size: 17px; }
+.example-note { background: var(--soft-bg); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; font-size: 14px; color: var(--muted); max-width: 70ch; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.panel h2 { font-family: var(--font-display); font-size: 20px; margin: 0; color: var(--fg); }
+.field { display: grid; gap: 4px; }
+.field label { font-weight: 600; font-size: 15px; }
+.hint { font-size: 13px; color: var(--muted); }
+.input-row { display: flex; align-items: center; gap: 8px; }
+.unit { color: var(--muted); font-size: 14px; min-width: 2.2em; }
+input[type="number"] {
+  width: 100%; min-width: 0; padding: 10px 12px; font: inherit; font-variant-numeric: tabular-nums;
+  background: var(--bg); color: var(--fg); border: 1px solid var(--line); border-radius: 6px;
+}
+input[type="number"]:focus-visible, button:focus-visible, textarea:focus-visible { outline: 3px solid var(--soft); outline-offset: 2px; }
+.sep { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+.hero { display: grid; gap: 4px; padding: 16px; border-radius: 6px; background: var(--accent); color: var(--on-accent); }
+.hero .k { font-size: 14px; opacity: .9; }
+.hero .v { font-family: var(--font-display); font-size: clamp(30px, 6vw, 42px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.hero .s { font-size: 14px; opacity: .9; }
+
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+td:last-child, th:last-child { text-align: right; }
+th { font-weight: 600; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+tr.total td { font-weight: 700; border-bottom: 0; padding-top: 12px; }
+
+.verdict { border-radius: 6px; padding: 14px 16px; font-size: 15px; display: grid; gap: 4px; }
+.verdict strong { font-size: 16px; }
+.verdict.warn { background: var(--warn-bg); color: var(--warn); }
+.verdict.ok { background: var(--ok-bg); color: var(--ok); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button {
+  font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 6px; cursor: pointer;
+  background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
+}
+button:hover { filter: brightness(1.08); }
+#copyMsg { font-size: 14px; color: var(--muted); }
+textarea#summary { position: absolute; left: -9999px; top: 0; width: 1px; height: 1px; opacity: 0; }
+
+.fine { font-size: 13px; color: var(--muted); max-width: 80ch; }
+footer { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 14px; font-size: 14px; color: var(--muted); }
+footer strong { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">CLeaders · Herramienta</div>
+    <h1>Costo de mantener inventario</h1>
+    <p class="lead">Estima cuánto te cuesta, por mes y por año, tener producto parado en bodega, y compara esperar contra liquidarlo.</p>
+    <div class="example-note">Los números que ves son un ejemplo. Cámbialos por los de tu empresa.</div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="h-datos">
+      <h2 id="h-datos">1. Tus datos</h2>
+
+      <div class="field">
+        <label for="valor">Valor del inventario parado (a costo)</label>
+        <div class="input-row"><input id="valor" type="number" inputmode="decimal" min="0" step="1000" value="500000"><span class="unit">MXN</span></div>
+        <span class="hint">Lo que te costó comprarlo o producirlo, no el precio al que esperas venderlo.</span>
+      </div>
+
+      <div class="field">
+        <label for="meses">Meses que lleva sin moverse</label>
+        <div class="input-row"><input id="meses" type="number" inputmode="decimal" min="0" step="1" value="6"><span class="unit">meses</span></div>
+      </div>
+
+      <hr class="sep">
+      <p class="hint" style="margin:0">Costos anuales como porcentaje del valor del inventario:</p>
+
+      <div class="field">
+        <label for="capital">Costo del dinero</label>
+        <div class="input-row"><input id="capital" type="number" inputmode="decimal" min="0" step="0.5" value="12"><span class="unit">%</span></div>
+        <span class="hint">Lo que pagas de crédito, o lo que ganarías si ese dinero estuviera en otra cosa.</span>
+      </div>
+      <div class="field">
+        <label for="almacen">Almacenaje y manejo</label>
+        <div class="input-row"><input id="almacen" type="number" inputmode="decimal" min="0" step="0.5" value="6"><span class="unit">%</span></div>
+        <span class="hint">Renta o parte de tu bodega, luz, personal que lo mueve y cuida.</span>
+      </div>
+      <div class="field">
+        <label for="seguro">Seguros</label>
+        <div class="input-row"><input id="seguro" type="number" inputmode="decimal" min="0" step="0.5" value="1"><span class="unit">%</span></div>
+      </div>
+      <div class="field">
+        <label for="merma">Merma, daño u obsolescencia</label>
+        <div class="input-row"><input id="merma" type="number" inputmode="decimal" min="0" step="0.5" value="5"><span class="unit">%</span></div>
+        <span class="hint">Producto que se echa a perder, se daña, caduca o pasa de moda.</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="h-res" aria-live="polite">
+      <h2 id="h-res">2. Lo que te cuesta</h2>
+
+      <div class="hero">
+        <span class="k">Cada mes que sigue parado te cuesta</span>
+        <span class="v" id="rMes">$0</span>
+        <span class="s" id="rTasa">Tasa anual de mantener: 0%</span>
+      </div>
+
+      <table>
+        <thead><tr><th>Concepto</th><th>Monto</th></tr></thead>
+        <tbody>
+          <tr><td>Costo del dinero (por año)</td><td id="tCapital">$0</td></tr>
+          <tr><td>Almacenaje y manejo (por año)</td><td id="tAlmacen">$0</td></tr>
+          <tr><td>Seguros (por año)</td><td id="tSeguro">$0</td></tr>
+          <tr><td>Merma y obsolescencia (por año)</td><td id="tMerma">$0</td></tr>
+          <tr class="total"><td>Total por año</td><td id="tAnio">$0</td></tr>
+          <tr class="total"><td id="tLblAcum">Ya acumulado</td><td id="tAcum">$0</td></tr>
+        </tbody>
+      </table>
+
+      <hr class="sep">
+      <h2>3. ¿Esperar o liquidar?</h2>
+      <div class="field">
+        <label for="mesesMas">Meses que esperarías más para venderlo</label>
+        <div class="input-row"><input id="mesesMas" type="number" inputmode="decimal" min="0" step="1" value="3"><span class="unit">meses</span></div>
+      </div>
+      <div class="field">
+        <label for="perdida">Pérdida si lo liquidas hoy</label>
+        <div class="input-row"><input id="perdida" type="number" inputmode="decimal" min="0" step="1" value="15"><span class="unit">%</span></div>
+        <span class="hint">Si lo vendieras a 85% de lo que te costó, la pérdida es 15%.</span>
+      </div>
+
+      <table>
+        <tbody>
+          <tr><td>Costo de esperar</td><td id="cEsperar">$0</td></tr>
+          <tr><td>Pérdida por liquidar</td><td id="cLiquidar">$0</td></tr>
+        </tbody>
+      </table>
+      <div id="verdict" class="verdict ok"><strong id="vTitle">Captura tus datos</strong><span id="vBody"></span></div>
+
+      <div class="actions">
+        <button type="button" id="copy">Copiar resumen</button>
+        <span id="copyMsg" role="status"></span>
+      </div>
+      <textarea id="summary" readonly aria-hidden="true" tabindex="-1"></textarea>
+    </section>
+  </div>
+
+  <p class="fine">Cómo se calcula: costo anual = valor del inventario × (costo del dinero + almacenaje + seguros + merma). El costo por mes es ese total entre 12, sin capitalizar intereses. La comparación solo pone lado a lado el costo de esperar y la pérdida de liquidar. No incluye la probabilidad de vender más adelante a precio completo ni el efecto en impuestos, que dependen de tu caso y de tu contador. Como referencia general, algunas fuentes del sector ubican el costo anual de mantener inventario entre 15% y 30% del valor promedio, pero cambia mucho por industria: usa tus propios números.</p>
+
+  <footer>
+    <span><strong>CLeaders</strong> · Arquitectura, no dependencia.</span>
+    <span>Herramienta de apoyo, no sustituye asesoría contable ni fiscal.</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var fmt = new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 });
+  var pct = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 });
+  function num(id) { var v = parseFloat($(id).value); return isFinite(v) && v >= 0 ? v : 0; }
+
+  function calc() {
+    var valor = num("valor"), meses = num("meses");
+    var cap = num("capital"), alm = num("almacen"), seg = num("seguro"), mer = num("merma");
+    var mesesMas = num("mesesMas"), perdida = num("perdida");
+
+    var tasa = cap + alm + seg + mer;
+    var cCap = valor * cap / 100, cAlm = valor * alm / 100, cSeg = valor * seg / 100, cMer = valor * mer / 100;
+    var anio = cCap + cAlm + cSeg + cMer;
+    var mes = anio / 12;
+    var acum = mes * meses;
+    var esperar = mes * mesesMas;
+    var liquidar = valor * perdida / 100;
+
+    $("rMes").textContent = fmt.format(mes);
+    $("rTasa").textContent = "Tasa anual de mantener: " + pct.format(tasa) + "% del valor del inventario";
+    $("tCapital").textContent = fmt.format(cCap);
+    $("tAlmacen").textContent = fmt.format(cAlm);
+    $("tSeguro").textContent = fmt.format(cSeg);
+    $("tMerma").textContent = fmt.format(cMer);
+    $("tAnio").textContent = fmt.format(anio);
+    $("tLblAcum").textContent = "Ya acumulado en " + pct.format(meses) + (meses === 1 ? " mes" : " meses");
+    $("tAcum").textContent = fmt.format(acum);
+    $("cEsperar").textContent = fmt.format(esperar);
+    $("cLiquidar").textContent = fmt.format(liquidar);
+
+    var v = $("verdict"), t, b;
+    if (valor <= 0) {
+      v.className = "verdict ok"; t = "Captura el valor del inventario"; b = "Con ese dato calculo el costo por mes.";
+    } else if (esperar >= liquidar) {
+      v.className = "verdict warn";
+      t = "Esperar ya cuesta más que liquidar";
+      b = "En " + pct.format(mesesMas) + " meses, esperar te costaría " + fmt.format(esperar) + ", y liquidar hoy te cuesta " + fmt.format(liquidar) + ". Revisa si hay una salida con menor pérdida.";
+    } else {
+      v.className = "verdict ok";
+      var mesesEq = mes > 0 ? liquidar / mes : 0;
+      t = "Esperar todavía cuesta menos que liquidar";
+      b = "Mientras no pase de unos " + pct.format(mesesEq) + " meses más, esperar te cuesta menos que la pérdida de liquidar. Solo si de verdad hay una venta probable en ese plazo.";
+    }
+    $("vTitle").textContent = t; $("vBody").textContent = b;
+
+    $("summary").value =
+      "Costo de mantener inventario (ejemplo de cálculo)\n" +
+      "Valor del inventario: " + fmt.format(valor) + "\n" +
+      "Tasa anual de mantener: " + pct.format(tasa) + "%\n" +
+      "Costo por mes: " + fmt.format(mes) + "\n" +
+      "Acumulado en " + pct.format(meses) + " meses: " + fmt.format(acum) + "\n" +
+      "Costo de esperar " + pct.format(mesesMas) + " meses más: " + fmt.format(esperar) + "\n" +
+      "Pérdida por liquidar hoy: " + fmt.format(liquidar) + "\n" +
+      "Herramienta de CLeaders. Arquitectura, no dependencia.";
+  }
+
+  ["valor","meses","capital","almacen","seguro","merma","mesesMas","perdida"].forEach(function (id) {
+    $(id).addEventListener("input", calc);
+  });
+
+  $("copy").addEventListener("click", function () {
+    var ta = $("summary"), msg = $("copyMsg");
+    function fallback() {
+      try { ta.style.left = "0"; ta.style.width = "1px"; ta.focus(); ta.select(); var ok = document.execCommand("copy"); ta.style.left = "-9999px"; msg.textContent = ok ? "Resumen copiado." : "No se pudo copiar. Selecciona y copia los datos de la pantalla."; }
+      catch (e) { msg.textContent = "No se pudo copiar. Selecciona y copia los datos de la pantalla."; }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ta.value).then(function () { msg.textContent = "Resumen copiado."; }, fallback);
+    } else { fallback(); }
+  });
+
+  calc();
+})();
+</script>
+
+</body>
+</html>
